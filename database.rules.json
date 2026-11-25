@@ -1,0 +1,118 @@
+{
+  "rules": {
+    ".read": false,
+    ".write": false,
+    "products": {
+      ".read": true,
+      ".write": "auth != null && auth.token.email === 'admin@gmail.com'"
+    },
+    "categories": {
+      ".read": true,
+      ".write": "auth != null && auth.token.email === 'admin@gmail.com'"
+    },
+    "banners": {
+      ".read": true,
+      ".write": "auth != null && auth.token.email === 'admin@gmail.com'"
+    },
+    "marketplaceChannels": {
+      ".read": true,
+      ".write": "auth != null && auth.token.email === 'admin@gmail.com'"
+    },
+    "news": {
+      ".read": true,
+      ".write": "auth != null && auth.token.email === 'admin@gmail.com'"
+    },
+    "introduction": {
+      ".read": true,
+      ".write": "auth != null && auth.token.email === 'admin@gmail.com'"
+    },
+    "contact": {
+      ".read": true,
+      ".write": "auth != null && auth.token.email === 'admin@gmail.com'"
+    },
+    "contactMessages": {
+      ".read": "auth != null && auth.token.email === 'admin@gmail.com'",
+      ".write": "auth != null && auth.token.email === 'admin@gmail.com'"
+    },
+    "orders": {
+      ".read": "auth != null && (auth.token.email === 'admin@gmail.com' || (query.orderByChild === 'customerUid' && query.equalTo === auth.uid))",
+      ".indexOn": ["customerUid"],
+      ".write": "auth != null && auth.token.email === 'admin@gmail.com'",
+      "$orderId": {
+        ".read": "auth != null && (auth.token.email === 'admin@gmail.com' || data.child('customerUid').val() === auth.uid)",
+        ".write": "auth != null && (auth.token.email === 'admin@gmail.com' || (!data.exists() && newData.child('customerUid').val() === auth.uid && (!newData.child('voucherId').exists() || (root.child('customerVouchers').child(auth.uid).child(newData.child('voucherId').val()).child('status').val() === 'available' && root.child('customerVouchers').child(auth.uid).child(newData.child('voucherId').val()).child('code').val() === newData.child('voucherCode').val()))))",
+        "paymentMethod": {
+          ".validate": "auth.token.email === 'admin@gmail.com' || !newData.exists() || newData.val() === 'cash_on_delivery' || newData.val() === 'momo'"
+        },
+        "paymentStatus": {
+          ".validate": "auth.token.email === 'admin@gmail.com' || !newData.exists() || newData.val() === 'pending'"
+        },
+        "paid": {
+          ".validate": "auth.token.email === 'admin@gmail.com' || !newData.exists() || newData.val() !== true"
+        },
+        "isPaid": {
+          ".validate": "auth.token.email === 'admin@gmail.com' || !newData.exists() || newData.val() !== true"
+        }
+      }
+    },
+    "customerVouchers": {
+      "$uid": {
+        ".read": "auth != null && (auth.token.email === 'admin@gmail.com' || auth.uid === $uid)",
+        "$voucherId": {
+          ".write": "auth != null && (auth.token.email === 'admin@gmail.com' || (auth.uid === $uid && ((!data.exists() && newData.child('voucherId').val() === $voucherId && newData.child('code').val() === root.child('vouchers').child($voucherId).child('code').val() && newData.child('discountType').val() === root.child('vouchers').child($voucherId).child('discountType').val() && newData.child('discountValue').val() === root.child('vouchers').child($voucherId).child('discountValue').val() && newData.child('status').val() === 'available' && root.child('vouchers').child($voucherId).child('isActive').val() === true && (root.child('vouchers').child($voucherId).child('audienceType').val() !== 'tier' || root.child('vouchers').child($voucherId).child('targetTier').val() === root.child('customers').child($uid).child('tier').val())) || (data.child('status').val() === 'available' && newData.child('status').val() === 'redeemed' && newData.child('voucherId').val() === data.child('voucherId').val() && newData.child('code').val() === data.child('code').val() && newData.child('discountType').val() === data.child('discountType').val() && newData.child('discountValue').val() === data.child('discountValue').val() && newData.child('orderId').isString()))))"
+        }
+      }
+    },
+    "customers": {
+      ".read": "auth != null && auth.token.email === 'admin@gmail.com'",
+      ".write": "auth != null && auth.token.email === 'admin@gmail.com'",
+      "$uid": {
+        ".read": "auth != null && (auth.token.email === 'admin@gmail.com' || auth.uid === $uid)",
+        ".write": "auth != null && (auth.token.email === 'admin@gmail.com' || (auth.uid === $uid && !data.exists()))",
+        ".validate": "auth.token.email === 'admin@gmail.com' || (auth.uid === $uid && ((data.exists() && newData.child('points').isNumber() && newData.child('points').val() >= 0 && newData.child('points').val() <= data.child('points').val()) || (!data.exists() && ((auth.token.email != null && newData.child('email').val() === auth.token.email) || (auth.token.phone_number != null && newData.child('phone').val() === auth.token.phone_number && newData.child('email').val() === '')) && newData.child('points').val() === 0 && (newData.child('tier').val() === 'Đồng' || newData.child('tier').val() === 'Thành viên') && newData.child('lifetimeSpend').val() === 0 && newData.child('loyaltySpendRemainder').val() === 0 && newData.child('isActive').val() === true && !newData.child('pointsHistory').exists() && !newData.child('loyaltyOrders').exists())))",
+        "points": {
+          ".write": "auth != null && (auth.token.email === 'admin@gmail.com' || (auth.uid === $uid && data.isNumber() && newData.isNumber() && newData.val() >= 0 && newData.val() < data.val()))",
+          ".validate": "newData.isNumber() && newData.val() >= 0"
+        },
+        "addresses": {
+          "$addressId": {
+            ".write": "auth != null && (auth.token.email === 'admin@gmail.com' || auth.uid === $uid)",
+            ".validate": "!newData.exists() || (newData.child('id').val() === $addressId && newData.child('name').isString() && newData.child('name').val().length <= 120 && newData.child('phone').isString() && newData.child('phone').val().length <= 30 && newData.child('province').isString() && newData.child('province').val().length <= 120 && newData.child('ward').isString() && newData.child('ward').val().length <= 120 && newData.child('street').isString() && newData.child('street').val().length <= 240 && newData.child('detailAddress').isString() && newData.child('detailAddress').val().length <= 300 && newData.child('address').isString() && newData.child('address').val().length <= 900 && (!newData.child('latitude').exists() || newData.child('latitude').isNumber()) && (!newData.child('longitude').exists() || newData.child('longitude').isNumber()))"
+          }
+        },
+        "defaultAddressId": {
+          ".write": "auth != null && (auth.token.email === 'admin@gmail.com' || auth.uid === $uid)",
+          ".validate": "!newData.exists() || newData.isString()"
+        }
+      }
+    },
+    "vouchers": {
+      ".read": true,
+      ".write": "auth != null && auth.token.email === 'admin@gmail.com'"
+    },
+    "flashSales": {
+      ".read": true,
+      ".write": "auth != null && auth.token.email === 'admin@gmail.com'"
+    },
+    "loyaltySettings": {
+      ".read": "auth != null && auth.token.email === 'admin@gmail.com'",
+      ".write": "auth != null && auth.token.email === 'admin@gmail.com'"
+    },
+    "paymentSettings": {
+      ".read": true,
+      ".write": "auth != null && auth.token.email === 'admin@gmail.com'"
+    },
+    "adminSettings": {
+      "emailNotifications": {
+        ".read": "auth != null && auth.token.email === 'admin@gmail.com'",
+        ".write": "auth != null && auth.token.email === 'admin@gmail.com'"
+      }
+    },
+    "publicConfig": {
+      "emailNotificationWebhookUrl": {
+        ".read": true,
+        ".write": "auth != null && auth.token.email === 'admin@gmail.com'"
+      }
+    }
+  }
+}

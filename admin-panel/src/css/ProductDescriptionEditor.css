@@ -1,0 +1,89 @@
+.product-description-editor {
+  overflow: hidden;
+  border: 1px solid #dfe5d6;
+  border-radius: 9px;
+  background: #fff;
+}
+
+.product-description-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px;
+  padding: 7px;
+  border-bottom: 1px solid #e8ecdf;
+  background: #f8faf5;
+}
+
+.product-description-toolbar button {
+  display: grid;
+  min-width: 32px;
+  height: 30px;
+  place-items: center;
+  padding: 0 7px;
+  border: 1px solid transparent;
+  border-radius: 5px;
+  background: transparent;
+  color: #485740;
+  cursor: pointer;
+  font: inherit;
+  font-size: 0.85rem;
+  font-weight: 400;
+}
+
+.product-description-toolbar button:hover {
+  border-color: #dce7d1;
+  background: #edf4e6;
+  color: #07834b;
+}
+
+.product-description-toolbar .is-bold {
+  font-weight: 600;
+}
+
+.product-description-toolbar .is-italic {
+  font-style: italic;
+}
+
+.product-description-toolbar .is-underline {
+  text-decoration: underline;
+}
+
+.product-description-editable {
+  min-height: 145px;
+  max-height: 360px;
+  overflow-y: auto;
+  padding: 12px;
+  color: #26351d;
+  font: inherit;
+  font-size: 0.9rem;
+  line-height: 1.6;
+  overflow-wrap: anywhere;
+}
+
+.product-description-editable:focus {
+  outline: 0;
+}
+
+.product-description-editable:not(.has-content)::before {
+  color: #8d9684;
+  content: attr(data-placeholder);
+  pointer-events: none;
+}
+
+.product-description-editable p,
+.product-description-editable ul,
+.product-description-editable ol,
+.product-description-editable blockquote {
+  margin: 0 0 8px;
+}
+
+.product-description-editable ul,
+.product-description-editable ol {
+  padding-left: 24px;
+}
+
+.product-description-editor-help {
+  padding: 0 12px 9px;
+  color: #7a8571;
+  font-size: 0.74rem;
+}

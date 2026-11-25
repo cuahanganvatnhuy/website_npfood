@@ -1,0 +1,771 @@
+.store-delivery-card {
+  overflow: hidden;
+  margin-top: 0;
+  border: 1px solid #e4e9df;
+  border-radius: 14px;
+  background: #fff;
+}
+
+.store-delivery-methods {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  border-bottom: 1px solid #edf0e8;
+}
+
+.store-delivery-methods > button {
+  display: flex;
+  min-height: 54px;
+  align-items: center;
+  justify-content: center;
+  gap: 9px;
+  border: 0;
+  background: #f8faf6;
+  color: #64705b;
+  cursor: pointer;
+  font: inherit;
+  font-size: 0.8rem;
+  font-weight: 500;
+}
+
+.store-delivery-methods > button + button {
+  border-left: 1px solid #e7ebdf;
+}
+
+.store-delivery-methods > button.is-active {
+  background: #fff;
+  color: #34452b;
+}
+
+.store-delivery-radio {
+  position: relative;
+  width: 18px;
+  height: 18px;
+  border: 1.5px solid #bac4b2;
+  border-radius: 50%;
+}
+
+.store-delivery-methods > button.is-active .store-delivery-radio {
+  border-color: #0b9f5b;
+}
+
+.store-delivery-methods > button.is-active .store-delivery-radio::after {
+  position: absolute;
+  inset: 4px;
+  border-radius: 50%;
+  background: #0b9f5b;
+  content: "";
+}
+
+.store-delivery-address-summary {
+  display: grid;
+  width: 100%;
+  grid-template-columns: 24px minmax(0, 1fr) 18px;
+  align-items: center;
+  gap: 10px;
+  padding: 14px 16px;
+  border: 0;
+  background: #fff;
+  color: #34452b;
+  cursor: pointer;
+  text-align: left;
+}
+
+.store-delivery-address-summary:hover {
+  background: #fbfcf8;
+}
+
+.store-delivery-pin {
+  color: #0b9f5b;
+  font-size: 1.25rem;
+  text-align: center;
+}
+
+.store-delivery-address-summary > span:nth-child(2) {
+  display: grid;
+  gap: 4px;
+  min-width: 0;
+}
+
+.store-delivery-address-summary strong {
+  overflow: hidden;
+  color: #34452b;
+  font-size: 0.8rem;
+  font-weight: 550;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.store-delivery-address-summary small {
+  overflow: hidden;
+  color: #718067;
+  font-size: 0.74rem;
+  line-height: 1.45;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.store-delivery-chevron {
+  color: #0b9f5b;
+  font-size: 1.35rem;
+  text-align: center;
+}
+
+.store-delivery-pickup-note {
+  padding: 15px 17px;
+  color: #718067;
+  font-size: 0.78rem;
+  line-height: 1.5;
+}
+
+.store-address-modal-backdrop {
+  position: fixed;
+  z-index: 1100;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  padding: 20px;
+  background: rgba(25, 34, 23, 0.5);
+}
+
+.store-address-modal {
+  display: grid;
+  width: min(100%, 640px);
+  max-height: min(88vh, 760px);
+  grid-template-rows: auto minmax(0, 1fr) auto;
+  overflow: hidden;
+  border: 1px solid #e7ebdf;
+  border-radius: 15px;
+  background: #fff;
+  box-shadow: 0 24px 70px rgba(20, 32, 15, 0.24);
+}
+
+.store-address-modal-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 15px 19px;
+  border-bottom: 1px solid #edf0e8;
+}
+
+.store-address-modal-header.is-form {
+  display: grid;
+  grid-template-columns: 36px minmax(0, 1fr) 36px;
+}
+
+.store-address-modal-header.is-form h2 {
+  text-align: left;
+}
+
+.store-address-modal-header h2 {
+  color: #34452b;
+  font-size: 1rem;
+  font-weight: 600;
+}
+
+.store-address-modal-header button {
+  display: grid;
+  width: 34px;
+  height: 34px;
+  place-items: center;
+  border: 0;
+  border-radius: 50%;
+  background: transparent;
+  color: #64705b;
+  cursor: pointer;
+  font: inherit;
+  font-size: 1.4rem;
+}
+
+.store-address-modal-header button:hover {
+  background: #f2f5ee;
+}
+
+.store-address-back {
+  transform: translateX(-6px);
+}
+
+.store-address-list {
+  display: grid;
+  align-content: start;
+  gap: 0;
+  overflow-y: auto;
+  padding: 0 19px 16px;
+}
+
+.store-address-item {
+  display: grid;
+  gap: 11px;
+  padding: 15px 0;
+  border-bottom: 1px solid #e7ebdf;
+}
+
+.store-address-choice {
+  display: grid;
+  grid-template-columns: 20px minmax(0, 1fr);
+  align-items: start;
+  gap: 10px;
+  cursor: pointer;
+}
+
+.store-address-choice input {
+  width: 17px;
+  height: 17px;
+  margin: 3px 0 0;
+  accent-color: #0b9f5b;
+}
+
+.store-address-choice > span {
+  display: grid;
+  gap: 6px;
+}
+
+.store-address-choice strong {
+  color: #34452b;
+  font-size: 0.85rem;
+  font-weight: 550;
+}
+
+.store-address-choice small {
+  color: #64705b;
+  font-size: 0.8rem;
+  line-height: 1.5;
+}
+
+.store-address-choice .store-address-default {
+  width: fit-content;
+  padding: 3px 8px;
+  border-radius: 5px;
+  background: #fff4d8;
+  color: #9a6a13;
+  font-size: 0.68rem;
+  font-weight: 550;
+}
+
+.store-address-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 14px;
+  padding-left: 30px;
+}
+
+.store-address-actions button {
+  padding: 2px 0;
+  border: 0;
+  background: transparent;
+  color: #0b9f5b;
+  cursor: pointer;
+  font: inherit;
+  font-size: 0.75rem;
+  font-weight: 500;
+}
+
+.store-address-actions button.is-delete {
+  color: #c4473e;
+}
+
+.store-address-add {
+  min-height: 47px;
+  margin-top: 14px;
+  border: 1px dashed #32bd76;
+  border-radius: 9px;
+  background: #f5f9f0;
+  color: #0b9f5b;
+  cursor: pointer;
+  font: inherit;
+  font-size: 0.8rem;
+  font-weight: 500;
+}
+
+.store-address-add:hover,
+.store-address-current-location:hover {
+  background: #edf5e6;
+}
+
+.store-address-empty {
+  padding: 22px 4px;
+  color: #718067;
+  font-size: 0.82rem;
+}
+
+.store-address-modal-footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: 9px;
+  padding: 12px 19px;
+  border-top: 1px solid #edf0e8;
+  background: #fff;
+}
+
+.store-address-modal-footer button {
+  min-height: 40px;
+  padding: 0 15px;
+  border-radius: 8px;
+  cursor: pointer;
+  font: inherit;
+  font-size: 0.78rem;
+  font-weight: 550;
+}
+
+.store-address-secondary {
+  border: 1px solid #dfe5d6;
+  background: #fff;
+  color: #5e6b54;
+}
+
+.store-address-confirm {
+  border: 1px solid #0b9f5b;
+  background: #0b9f5b;
+  color: #fff;
+}
+
+.store-address-confirm:hover:not(:disabled) {
+  border-color: #07834b;
+  background: #07834b;
+}
+
+.store-address-confirm:disabled {
+  border-color: #aab69e;
+  background: #aab69e;
+  cursor: not-allowed;
+}
+
+.store-address-form {
+  display: grid;
+  align-content: start;
+  gap: 12px;
+  overflow-y: auto;
+  padding: 16px 19px 0;
+}
+
+.store-address-current-location {
+  min-height: 44px;
+  border: 1px solid #0b9f5b;
+  border-radius: 8px;
+  background: #f5f9f0;
+  color: #0b9f5b;
+  cursor: pointer;
+  font: inherit;
+  font-size: 0.83rem;
+  font-weight: 550;
+}
+
+.store-address-current-location:disabled {
+  cursor: wait;
+  opacity: 0.7;
+}
+
+.store-address-or {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  color: #84907b;
+  font-size: 0.8rem;
+  text-align: center;
+}
+
+.store-address-or span:first-child,
+.store-address-or span:last-child {
+  height: 1px;
+  flex: 1;
+  background: #e7ebdf;
+}
+
+.store-address-region-select,
+.store-address-region-field {
+  display: flex;
+  width: 100%;
+  min-height: 41px;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 8px 10px;
+  border: 1px solid #dfe5d6;
+  border-radius: 8px;
+  background: #fff;
+  color: #26351d;
+  cursor: pointer;
+  font: inherit;
+  font-size: 0.82rem;
+  text-align: left;
+}
+
+.store-address-region-select {
+  min-height: 72px;
+  padding: 12px 14px;
+}
+
+.store-address-region-select:hover,
+.store-address-region-field:hover {
+  border-color: #32bd76;
+  background: #fbfcf8;
+}
+
+.store-address-region-field > span:first-child {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.store-address-region-choice-copy {
+  display: grid;
+  gap: 4px;
+  min-width: 0;
+}
+
+.store-address-region-choice-copy strong {
+  color: #0b9f5b;
+  font-size: 0.9rem;
+  font-weight: 500;
+}
+
+.store-address-region-choice-copy small {
+  overflow: hidden;
+  color: #84907b;
+  font-size: 0.78rem;
+  font-weight: 400;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.store-address-region-field > span:last-child,
+.store-address-region-select > span {
+  flex: 0 0 auto;
+  color: #0b9f5b;
+  font-size: 1.15rem;
+}
+
+.store-address-location-notice,
+.store-address-success,
+.store-address-error {
+  margin: 0;
+  font-size: 0.72rem;
+  line-height: 1.5;
+}
+
+.store-address-location-notice {
+  color: #84907b;
+}
+
+.store-address-location-notice a {
+  color: #0b9f5b;
+  text-decoration: none;
+}
+
+.store-address-location-notice a:hover {
+  text-decoration: underline;
+}
+
+.store-address-success {
+  color: #0b9f5b;
+}
+
+.store-address-error {
+  padding: 9px 10px;
+  border-radius: 7px;
+  background: #fff5f2;
+  color: #a14837;
+}
+
+.store-address-form > label {
+  display: grid;
+  gap: 5px;
+  color: #47543e;
+  font-size: 0.74rem;
+  font-weight: 500;
+}
+
+.store-address-form input {
+  width: 100%;
+  min-height: 41px;
+  padding: 8px 10px;
+  border: 1px solid #dfe5d6;
+  border-radius: 8px;
+  background: #fff;
+  color: #26351d;
+  font: inherit;
+  font-size: 0.82rem;
+}
+
+.store-address-form textarea {
+  width: 100%;
+  min-height: 60px;
+  padding: 8px 10px;
+  border: 1px solid #dfe5d6;
+  border-radius: 8px;
+  background: #fff;
+  color: #26351d;
+  font: inherit;
+  font-size: 0.82rem;
+  resize: vertical;
+}
+
+.store-address-form input:focus,
+.store-address-form textarea:focus {
+  border-color: #32bd76;
+  outline: 3px solid rgba(11, 159, 91, 0.12);
+}
+
+.store-address-manual-entry {
+  min-height: 38px;
+  border: 0;
+  background: transparent;
+  color: #0b9f5b;
+  cursor: pointer;
+  font: inherit;
+  font-size: 0.76rem;
+  font-weight: 500;
+  text-align: left;
+}
+
+.store-address-form .store-address-modal-footer {
+  position: sticky;
+  bottom: 0;
+  margin: 2px -19px 0;
+}
+
+.store-address-modal button:focus-visible,
+.store-delivery-card button:focus-visible {
+  outline: 3px solid rgba(11, 159, 91, 0.22);
+  outline-offset: 2px;
+}
+
+.store-region-modal-backdrop {
+  position: fixed;
+  z-index: 1200;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  padding: 18px;
+  background: rgba(25, 34, 23, 0.54);
+}
+
+.store-region-modal {
+  display: grid;
+  width: min(100%, 680px);
+  max-height: min(88vh, 760px);
+  grid-template-rows: auto auto auto minmax(0, 1fr) auto;
+  overflow: hidden;
+  border: 1px solid #e7ebdf;
+  border-radius: 14px;
+  background: #fff;
+  box-shadow: 0 24px 70px rgba(20, 32, 15, 0.26);
+}
+
+.store-region-modal-header {
+  display: grid;
+  grid-template-columns: 36px minmax(0, 1fr) 36px;
+  align-items: center;
+  gap: 8px;
+  padding: 13px 17px;
+  border-bottom: 1px solid #edf0e8;
+}
+
+.store-region-modal-header h2 {
+  color: #34452b;
+  font-size: 1rem;
+  font-weight: 600;
+  text-align: center;
+}
+
+.store-region-modal-header button {
+  display: grid;
+  width: 34px;
+  height: 34px;
+  place-items: center;
+  border: 0;
+  border-radius: 50%;
+  background: transparent;
+  color: #34452b;
+  cursor: pointer;
+  font: inherit;
+  font-size: 1.35rem;
+}
+
+.store-region-modal-header button:hover {
+  background: #f2f5ee;
+}
+
+.store-region-steps {
+  display: flex;
+  align-items: center;
+  gap: 11px;
+  padding: 22px 18px 0;
+}
+
+.store-region-steps button {
+  padding: 0 0 8px;
+  border: 0;
+  border-bottom: 2px solid transparent;
+  background: transparent;
+  color: #84907b;
+  cursor: pointer;
+  font: inherit;
+  font-size: 0.82rem;
+  font-weight: 500;
+}
+
+.store-region-steps button.is-active {
+  border-bottom-color: #0b9f5b;
+  color: #34452b;
+}
+
+.store-region-steps .store-region-back {
+  display: grid;
+  width: 34px;
+  height: 34px;
+  flex: 0 0 34px;
+  place-items: center;
+  padding: 0;
+  border: 1px solid #dfe5d6;
+  border-radius: 50%;
+  background: #fff;
+  color: #0b9f5b;
+  font-size: 1.35rem;
+}
+
+.store-region-steps .store-region-back:hover {
+  background: #f5f9f0;
+}
+
+.store-region-steps button:disabled {
+  cursor: not-allowed;
+  opacity: 0.55;
+}
+
+.store-region-steps > span {
+  align-self: flex-start;
+  color: #9aa392;
+  font-size: 1.1rem;
+}
+
+.store-region-controls {
+  display: grid;
+  gap: 10px;
+  padding: 12px 18px;
+  border-bottom: 1px solid #edf0e8;
+}
+
+.store-region-controls .store-address-current-location {
+  min-height: 41px;
+}
+
+.store-region-search input {
+  width: 100%;
+  min-height: 42px;
+  padding: 8px 11px;
+  border: 1px solid #dfe5d6;
+  border-radius: 8px;
+  color: #34452b;
+  font: inherit;
+  font-size: 0.8rem;
+}
+
+.store-region-search input:focus {
+  border-color: #32bd76;
+  outline: 3px solid rgba(11, 159, 91, 0.12);
+}
+
+.store-region-results {
+  display: grid;
+  align-content: start;
+  overflow-y: auto;
+  padding: 5px 18px;
+}
+
+.store-region-results > button {
+  min-height: 48px;
+  padding: 9px 3px;
+  border: 0;
+  border-bottom: 1px solid #edf0e8;
+  background: #fff;
+  color: #34452b;
+  cursor: pointer;
+  font: inherit;
+  font-size: 0.85rem;
+  text-align: left;
+}
+
+.store-region-results > button:hover {
+  color: #0b9f5b;
+}
+
+.store-region-results > p {
+  padding: 14px 0;
+  color: #718067;
+  font-size: 0.8rem;
+  line-height: 1.5;
+}
+
+.store-region-results > p[role="alert"] {
+  color: #a14837;
+}
+
+.store-region-attribution {
+  padding: 9px 18px;
+  border-top: 1px solid #edf0e8;
+  color: #84907b;
+  font-size: 0.68rem;
+}
+
+.store-region-attribution a {
+  color: #0b9f5b;
+  text-decoration: none;
+}
+
+.store-region-attribution a:hover {
+  text-decoration: underline;
+}
+
+@media (max-width: 560px) {
+  .store-delivery-methods > button {
+    gap: 7px;
+    font-size: 0.74rem;
+  }
+
+  .store-delivery-address-summary {
+    padding: 12px;
+  }
+
+  .store-address-modal-backdrop {
+    padding: 10px;
+  }
+
+  .store-address-modal {
+    max-height: 92vh;
+    border-radius: 12px;
+  }
+
+  .store-region-modal-backdrop {
+    padding: 10px;
+  }
+
+  .store-region-modal {
+    max-height: 92vh;
+    border-radius: 12px;
+  }
+
+  .store-region-modal-header,
+  .store-region-controls,
+  .store-region-results {
+    padding-right: 13px;
+    padding-left: 13px;
+  }
+
+  .store-address-modal-header,
+  .store-address-modal-footer {
+    padding-right: 13px;
+    padding-left: 13px;
+  }
+
+  .store-address-list,
+  .store-address-form {
+    padding-right: 13px;
+    padding-left: 13px;
+  }
+
+  .store-address-form .store-address-modal-footer {
+    margin-right: -13px;
+    margin-left: -13px;
+  }
+}
