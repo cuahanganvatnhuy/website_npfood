@@ -10,19 +10,20 @@ const NewsDetail = () => {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    const fetchNewsDetail = async () => {
+      setLoading(true);
+      try {
+        const newsData = await getNewsById(id);
+        setNews(newsData);
+      } catch (error) {
+        console.error('Error fetching news detail:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
     fetchNewsDetail();
   }, [id]);
-
-  const fetchNewsDetail = async () => {
-    try {
-      const newsData = await getNewsById(id);
-      setNews(newsData);
-    } catch (error) {
-      console.error('Error fetching news detail:', error);
-    } finally {
-      setLoading(false);
-    }
-  };
 
   const handleBack = () => {
     navigate('/news');

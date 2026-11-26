@@ -149,7 +149,7 @@ const Products = ({ addToCart }) => {
     const otherCategories = otherProducts.filter((product) => !sameCategoryIds.has(product.id));
 
     return [...sameCategory, ...otherCategories].slice(0, 4);
-  }, [products, selectedProduct?.id, selectedProduct?.categoryId]);
+  }, [products, selectedProduct]);
   const hasSelectedProductFlashSale = selectedProduct?.flashSale &&
     Number(selectedProduct.originalPrice) > Number(selectedProduct.price);
   const availableStock = Number(selectedProduct?.stock) || 0;
