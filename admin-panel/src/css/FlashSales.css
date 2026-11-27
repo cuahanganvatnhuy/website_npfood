@@ -492,6 +492,10 @@
 }
 
 .flash-sales-action {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
   min-height: 30px;
   padding: 0 8px;
   border: 1px solid transparent;
@@ -501,6 +505,26 @@
   font: inherit;
   font-size: 0.74rem;
   font-weight: 500;
+}
+
+.flash-sales-action svg {
+  width: 14px;
+  height: 14px;
+  fill: none;
+  stroke: currentColor;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  stroke-width: 1.8;
+}
+
+.flash-sales-action.copy {
+  border-color: #dce9e1;
+  background: #f3f8f4;
+  color: #28714d;
+}
+
+.flash-sales-action.copy:hover {
+  background: #e8f3eb;
 }
 
 .flash-sales-action.edit {

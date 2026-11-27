@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
+import { BrowserRouter as Router, Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import CustomerAccount from './pages/CustomerAccount';
 import Navigation from './components/Navigation';
 import Footer from './components/Footer';
@@ -17,6 +17,16 @@ import { subscribeToCustomerAuth } from './services/customerAuthService';
 import './App.css';
 
 const CART_STORAGE_KEY = 'npfood-cart';
+
+function ScrollToTop() {
+  const { pathname, search } = useLocation();
+
+  useEffect(() => {
+    window.scrollTo(0, 0);
+  }, [pathname, search]);
+
+  return null;
+}
 
 const loadCart = () => {
   try {
@@ -129,6 +139,7 @@ function App() {
 
   return (
     <Router>
+      <ScrollToTop />
       <div className="App">
         <Navigation cartCount={cartCount} user={customerUser} />
         <main className="main-content">

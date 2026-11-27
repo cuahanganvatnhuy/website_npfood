@@ -56,3 +56,18 @@ export const deleteProduct = async (productId) => {
     throw error;
   }
 };
+
+export const deleteProducts = async (productIds) => {
+  const uniqueIds = [...new Set(productIds)].filter(Boolean);
+  if (uniqueIds.length === 0) return;
+
+  const updates = Object.fromEntries(
+    uniqueIds.map((productId) => [`products/${productId}`, null])
+  );
+  try {
+    await update(ref(db), updates);
+  } catch (error) {
+    console.error('Error deleting products:', error);
+    throw error;
+  }
+};

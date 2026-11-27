@@ -90,34 +90,32 @@ const Home = ({ addToCart, user }) => {
   }, [user?.uid]);
 
   const fetchData = async () => {
-    const results = await Promise.allSettled([
-      getActiveBanners(),
-      getActiveProducts(),
-      getAllCategories(),
-      getPublishedNews(),
-      getAvailableVouchers()
-    ]);
+    setLoadError('');
+    const loadSection = async (label, request, apply, onError) => {
+      try {
+        apply(await request());
+      } catch (error) {
+        console.error(`Lỗi khi tải ${label}:`, error);
+        onError?.(error);
+      }
+    };
 
-    const [bannerResult, productResult, categoryResult, newsResult, voucherResult] = results;
-    if (bannerResult.status === 'fulfilled') setBanners(bannerResult.value);
-    else console.error('Lỗi khi tải banner:', bannerResult.reason);
+    const productsRequest = loadSection(
+      'sản phẩm',
+      getActiveProducts,
+      setProducts,
+      (error) => setLoadError(error.message || 'Không thể tải sản phẩm.')
+    );
+    const secondaryRequests = [
+      loadSection('danh mục', getAllCategories, setCategories),
+      loadSection('banner', getActiveBanners, setBanners),
+      loadSection('tin tức', getPublishedNews, (items) => setNews(items.slice(0, 3))),
+      loadSection('voucher', getAvailableVouchers, setVouchers)
+    ];
 
-    if (productResult.status === 'fulfilled') setProducts(productResult.value);
-    else {
-      console.error('Lỗi khi tải sản phẩm:', productResult.reason);
-      setLoadError(productResult.reason?.message || 'Không thể tải sản phẩm.');
-    }
-
-    if (categoryResult.status === 'fulfilled') setCategories(categoryResult.value);
-    else console.error('Lỗi khi tải danh mục:', categoryResult.reason);
-
-    if (newsResult.status === 'fulfilled') setNews(newsResult.value.slice(0, 3));
-    else console.error('Lỗi khi tải tin tức:', newsResult.reason);
-
-    if (voucherResult.status === 'fulfilled') setVouchers(voucherResult.value);
-    else console.error('Lỗi khi tải voucher:', voucherResult.reason);
-
+    await productsRequest;
     setLoading(false);
+    await Promise.all(secondaryRequests);
   };
 
   const usedCategories = useMemo(() => {
@@ -127,6 +125,15 @@ const Home = ({ addToCart, user }) => {
 
   const currentBannerData = banners[currentBanner];
   const featuredProducts = products.slice(0, 8);
+  const categoryProductGroups = useMemo(() => usedCategories
+    .map((category) => ({
+      category,
+      products: products
+        .filter((product) => product.categoryId === category.id)
+        .sort((a, b) => new Date(b.createdAt || 0) - new Date(a.createdAt || 0))
+        .slice(0, 10)
+    }))
+    .filter((group) => group.products.length > 0), [products, usedCategories]);
   const flashSaleProducts = products.filter((product) => product.flashSale).slice(0, 5);
   const homeVouchers = vouchers.filter((voucher) => (
     voucher.code &&
@@ -192,10 +199,6 @@ const Home = ({ addToCart, user }) => {
 
   const nextBanner = () => setCurrentBanner((current) => (current + 1) % banners.length);
   const previousBanner = () => setCurrentBanner((current) => (current - 1 + banners.length) % banners.length);
-
-  if (loading) {
-    return <div className="store-home-state">Đang tải gian hàng ...</div>;
-  }
 
   return (
     <div className="store-home-page">
@@ -379,7 +382,17 @@ const Home = ({ addToCart, user }) => {
             <div><span className="store-section-kicker">GỢI Ý DÀNH CHO BẠN</span><h2>Sản phẩm nổi bật</h2></div>
             <Link to="/products" className="store-text-link">Xem tất cả <span>→</span></Link>
           </div>
-          {loadError ? (
+          {loading ? (
+            <div className="store-home-product-grid store-home-skeleton-grid" role="status" aria-label="Đang tải sản phẩm">
+              {Array.from({ length: 5 }, (_, index) => (
+                <article className="store-home-skeleton-card" key={index} aria-hidden="true">
+                  <span className="store-home-skeleton-image" />
+                  <span className="store-home-skeleton-line" />
+                  <span className="store-home-skeleton-line short" />
+                </article>
+              ))}
+            </div>
+          ) : loadError ? (
             <div className="store-home-error" role="alert">
               <p>{loadError}</p>
               <button type="button" onClick={() => { setLoading(true); fetchData(); }}>Thử tải lại</button>
@@ -407,6 +420,39 @@ const Home = ({ addToCart, user }) => {
           </div>
         </div>
       </section>
+
+      {categoryProductGroups.map(({ category, products: categoryProducts }, index) => (
+        <section
+          className={`store-home-section store-category-products-section ${index % 2 ? 'is-alt' : ''}`}
+          key={category.id}
+        >
+          <div className="store-home-container">
+            <div className="store-section-heading">
+              <div>
+                <span className="store-section-kicker">SẢN PHẨM MỚI NHẤT THEO DANH MỤC</span>
+                <h2>{category.name}</h2>
+              </div>
+              <Link
+                to={`/products?category=${encodeURIComponent(category.id)}`}
+                className="store-text-link"
+              >
+                Xem tất cả <span>→</span>
+              </Link>
+            </div>
+            <div className="store-home-product-grid">
+              {categoryProducts.map((product) => (
+                <ProductCard
+                  key={product.id}
+                  product={product}
+                  category={category}
+                  onOpen={openProduct}
+                  onAdd={addToCart}
+                />
+              ))}
+            </div>
+          </div>
+        </section>
+      ))}
 
       {news.length > 0 && (
         <section className="store-home-section store-news-section">

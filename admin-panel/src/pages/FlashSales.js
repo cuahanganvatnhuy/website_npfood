@@ -136,6 +136,29 @@ const FlashSales = () => {
     setEditorStep('details');
   };
 
+  const copyCampaign = (campaign) => {
+    const productIds = getCampaignProductIds(campaign);
+    const copySuffix = ' (Sao chép)';
+    const sourceName = campaign.name || 'Flash Sale';
+    const name = `${sourceName.slice(0, 80 - copySuffix.length)}${copySuffix}`;
+
+    setCampaignId('');
+    setEditingPublishedCampaign(false);
+    setCampaignForm({
+      name,
+      startsAt: fromDateTimeInput(campaign.startsAt),
+      endsAt: fromDateTimeInput(campaign.endsAt),
+      productIds
+    });
+    setSalePrices(Object.fromEntries(productIds.map((productId) => [
+      productId,
+      campaign.products?.[productId]?.salePrice ?? ''
+    ])));
+    setProductSearch('');
+    setError('');
+    setEditorStep('details');
+  };
+
   const openCampaignPrices = (campaign) => {
     const productIds = getCampaignProductIds(campaign);
     setCampaignId(campaign.id);
@@ -494,6 +517,19 @@ const FlashSales = () => {
                         <td><span className={`flash-sales-status ${status.className}`}>{status.label}</span></td>
                         <td>
                           <div className="flash-sales-actions">
+                            <button
+                              type="button"
+                              className="flash-sales-action copy"
+                              onClick={() => copyCampaign(campaign)}
+                              aria-label={`Sao chép chương trình ${campaign.name || 'Flash Sale'}`}
+                              title="Sao chép chương trình"
+                            >
+                              <svg viewBox="0 0 24 24" aria-hidden="true">
+                                <rect x="8" y="8" width="12" height="12" rx="2" />
+                                <path d="M16 8V5a1 1 0 00-1-1H5a1 1 0 00-1 1v10a1 1 0 001 1h3" />
+                              </svg>
+                              Sao chép
+                            </button>
                             {campaign.status === 'draft' ? (
                               <button
                                 type="button"

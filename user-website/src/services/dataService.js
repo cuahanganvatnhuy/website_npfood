@@ -22,6 +22,45 @@ const readCollection = async (path) => {
   return items;
 };
 
+const PUBLIC_DATA_CACHE_PREFIX = 'npfood-public-data-v1:';
+
+const withPublicDataCache = async (key, maxAgeMs, loadData) => {
+  const cacheKey = `${PUBLIC_DATA_CACHE_PREFIX}${key}`;
+  if (typeof window !== 'undefined') {
+    try {
+      const cachedValue = window.localStorage.getItem(cacheKey);
+      if (cachedValue) {
+        const cached = JSON.parse(cachedValue);
+        const cacheAge = Date.now() - cached.savedAt;
+        if (
+          Number.isFinite(cacheAge) &&
+          cacheAge >= 0 &&
+          cacheAge < maxAgeMs &&
+          Object.prototype.hasOwnProperty.call(cached, 'value')
+        ) {
+          return cached.value;
+        }
+        window.localStorage.removeItem(cacheKey);
+      }
+    } catch (error) {
+      console.warn('Không thể đọc dữ liệu cửa hàng đã lưu:', error);
+    }
+  }
+
+  const value = await loadData();
+  if (typeof window !== 'undefined') {
+    try {
+      window.localStorage.setItem(cacheKey, JSON.stringify({
+        savedAt: Date.now(),
+        value
+      }));
+    } catch (error) {
+      console.warn('Không thể lưu dữ liệu cửa hàng vào bộ nhớ đệm:', error);
+    }
+  }
+  return value;
+};
+
 export const getPaymentSettings = async () => {
   const snapshot = await get(ref(db, 'paymentSettings'));
   const settings = snapshot.exists() ? snapshot.val() : {};
@@ -82,10 +121,12 @@ export const getProductImages = async () => {
 
 export const getActiveBanners = async () => {
   try {
-    const banners = await readCollection('banners');
-    return banners
-      .filter((banner) => banner.isActive !== false)
-      .sort((a, b) => (Number(a.order) || 0) - (Number(b.order) || 0));
+    return await withPublicDataCache('active-banners', 30 * 1000, async () => {
+      const banners = await readCollection('banners');
+      return banners
+        .filter((banner) => banner.isActive !== false)
+        .sort((a, b) => (Number(a.order) || 0) - (Number(b.order) || 0));
+    });
   } catch (error) {
     console.error('Error fetching banners:', error);
     throw error;
@@ -94,18 +135,20 @@ export const getActiveBanners = async () => {
 
 export const getActiveMarketplaceChannels = async () => {
   try {
-    const channels = await readCollection('marketplaceChannels');
-    return channels
-      .filter((channel) => {
-        if (channel.isActive === false || !channel.name || !channel.url) return false;
-        try {
-          const url = new URL(channel.url);
-          return url.protocol === 'https:' || url.protocol === 'http:';
-        } catch {
-          return false;
-        }
-      })
-      .sort((a, b) => (Number(a.order) || 0) - (Number(b.order) || 0));
+    return await withPublicDataCache('active-marketplace-channels', 5 * 60 * 1000, async () => {
+      const channels = await readCollection('marketplaceChannels');
+      return channels
+        .filter((channel) => {
+          if (channel.isActive === false || !channel.name || !channel.url) return false;
+          try {
+            const url = new URL(channel.url);
+            return url.protocol === 'https:' || url.protocol === 'http:';
+          } catch {
+            return false;
+          }
+        })
+        .sort((a, b) => (Number(a.order) || 0) - (Number(b.order) || 0));
+    });
   } catch (error) {
     console.error('Error fetching marketplace channels:', error);
     throw error;
@@ -114,56 +157,58 @@ export const getActiveMarketplaceChannels = async () => {
 
 export const getActiveProducts = async () => {
   try {
-    const [products, campaigns] = await Promise.all([
-      readCollection('products'),
-      readCollection('flashSales')
-    ]);
-    const now = Date.now();
-    const activeCampaigns = campaigns.filter((campaign) => {
-      if (campaign.status !== 'published' || campaign.isActive !== true) return false;
-      const startsAt = new Date(campaign.startsAt).getTime();
-      const endsAt = new Date(campaign.endsAt).getTime();
-      return Number.isFinite(startsAt) && Number.isFinite(endsAt) && startsAt <= now && now < endsAt;
-    });
-    const saleByProductId = {};
-
-    activeCampaigns.forEach((campaign) => {
-      Object.entries(campaign.products || {}).forEach(([productId, sale]) => {
-        const salePrice = Number(sale.salePrice);
-        const product = products.find((item) => item.id === productId);
-        if (!product || product.isActive === false ||
-            !Number.isFinite(salePrice) ||
-            salePrice <= 0 ||
-            salePrice >= Number(product.price)) return;
-        const currentSale = saleByProductId[productId];
-        if (!currentSale || salePrice < currentSale.salePrice) {
-          saleByProductId[productId] = {
-            salePrice,
-            campaignId: campaign.id,
-            name: campaign.name || 'Flash Sale',
-            endsAt: campaign.endsAt
-          };
-        }
+    return await withPublicDataCache('active-products', 10 * 1000, async () => {
+      const [products, campaigns] = await Promise.all([
+        readCollection('products'),
+        readCollection('flashSales')
+      ]);
+      const now = Date.now();
+      const activeCampaigns = campaigns.filter((campaign) => {
+        if (campaign.status !== 'published' || campaign.isActive !== true) return false;
+        const startsAt = new Date(campaign.startsAt).getTime();
+        const endsAt = new Date(campaign.endsAt).getTime();
+        return Number.isFinite(startsAt) && Number.isFinite(endsAt) && startsAt <= now && now < endsAt;
       });
-    });
+      const saleByProductId = {};
 
-    return products
-      .filter((product) => product.isActive !== false)
-      .map((product) => {
-        const sale = saleByProductId[product.id];
-        if (!sale) return product;
-        return {
-          ...product,
-          originalPrice: Number(product.price),
-          price: sale.salePrice,
-          flashSale: {
-            campaignId: sale.campaignId,
-            name: sale.name,
-            endsAt: sale.endsAt
+      activeCampaigns.forEach((campaign) => {
+        Object.entries(campaign.products || {}).forEach(([productId, sale]) => {
+          const salePrice = Number(sale.salePrice);
+          const product = products.find((item) => item.id === productId);
+          if (!product || product.isActive === false ||
+              !Number.isFinite(salePrice) ||
+              salePrice <= 0 ||
+              salePrice >= Number(product.price)) return;
+          const currentSale = saleByProductId[productId];
+          if (!currentSale || salePrice < currentSale.salePrice) {
+            saleByProductId[productId] = {
+              salePrice,
+              campaignId: campaign.id,
+              name: campaign.name || 'Flash Sale',
+              endsAt: campaign.endsAt
+            };
           }
-        };
-      })
-      .sort((a, b) => new Date(b.createdAt || 0) - new Date(a.createdAt || 0));
+        });
+      });
+
+      return products
+        .filter((product) => product.isActive !== false)
+        .map((product) => {
+          const sale = saleByProductId[product.id];
+          if (!sale) return product;
+          return {
+            ...product,
+            originalPrice: Number(product.price),
+            price: sale.salePrice,
+            flashSale: {
+              campaignId: sale.campaignId,
+              name: sale.name,
+              endsAt: sale.endsAt
+            }
+          };
+        })
+        .sort((a, b) => new Date(b.createdAt || 0) - new Date(a.createdAt || 0));
+    });
   } catch (error) {
     console.error('Error fetching products and Flash Sale prices:', error);
     throw error;
@@ -286,8 +331,10 @@ export const calculateVoucherDiscount = (voucher, subtotal) => {
 
 export const getAllCategories = async () => {
   try {
-    const categories = await readCollection('categories');
-    return categories.sort((a, b) => (Number(a.order) || 0) - (Number(b.order) || 0));
+    return await withPublicDataCache('categories', 30 * 1000, async () => {
+      const categories = await readCollection('categories');
+      return categories.sort((a, b) => (Number(a.order) || 0) - (Number(b.order) || 0));
+    });
   } catch (error) {
     console.error('Error fetching categories:', error);
     throw error;
@@ -310,10 +357,12 @@ export const getIntroduction = async () => {
 
 export const getPublishedNews = async () => {
   try {
-    const news = await readCollection('news');
-    return news
-      .filter((item) => item.published === true)
-      .sort((a, b) => new Date(b.createdAt || 0) - new Date(a.createdAt || 0));
+    return await withPublicDataCache('published-news', 60 * 1000, async () => {
+      const news = await readCollection('news');
+      return news
+        .filter((item) => item.published === true)
+        .sort((a, b) => new Date(b.createdAt || 0) - new Date(a.createdAt || 0));
+    });
   } catch (error) {
     console.error('Error fetching news:', error);
     throw error;
@@ -333,12 +382,14 @@ export const getNewsById = async (newsId) => {
 
 export const getContactInfo = async () => {
   try {
-    const contacts = await readCollection('contact');
-    return contacts.reduce((latest, contact) => {
-      if (!latest) return contact;
-      return new Date(contact.updatedAt || contact.createdAt || 0) >
-        new Date(latest.updatedAt || latest.createdAt || 0) ? contact : latest;
-    }, null);
+    return await withPublicDataCache('contact-info', 60 * 1000, async () => {
+      const contacts = await readCollection('contact');
+      return contacts.reduce((latest, contact) => {
+        if (!latest) return contact;
+        return new Date(contact.updatedAt || contact.createdAt || 0) >
+          new Date(latest.updatedAt || latest.createdAt || 0) ? contact : latest;
+      }, null);
+    });
   } catch (error) {
     console.error('Error fetching contact info:', error);
     throw error;

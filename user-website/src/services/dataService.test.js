@@ -29,6 +29,7 @@ const makeSnapshot = (collection) => ({
 
 beforeEach(() => {
   jest.clearAllMocks();
+  window.localStorage.clear();
   mockCollections = {};
   auth.currentUser = null;
   ref.mockImplementation((database, path) => ({ path }));
@@ -68,6 +69,22 @@ test('uses the lowest valid price from a currently active published Flash Sale',
     originalPrice: 100000,
     flashSale: { name: 'Flash Sale cuối tuần' }
   });
+});
+
+test('reuses recently loaded public products instead of reading Firebase again', async () => {
+  mockCollections = {
+    products: {
+      product1: { name: 'Sản phẩm', price: 100000, isActive: true }
+    },
+    flashSales: {}
+  };
+
+  const firstResult = await getActiveProducts();
+  expect(get).toHaveBeenCalledTimes(2);
+  get.mockClear();
+
+  await expect(getActiveProducts()).resolves.toEqual(firstResult);
+  expect(get).not.toHaveBeenCalled();
 });
 
 test('returns only active vouchers within their dates and usage limits', async () => {

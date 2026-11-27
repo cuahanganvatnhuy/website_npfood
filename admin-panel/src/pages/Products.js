@@ -1,6 +1,12 @@
 import { useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
-import { createProduct, deleteProduct, getAllProducts, updateProduct } from '../services/productService.js';
+import {
+  createProduct,
+  deleteProduct,
+  deleteProducts,
+  getAllProducts,
+  updateProduct
+} from '../services/productService.js';
 import { getAllCategories } from '../services/categoryService.js';
 import CurrencyInput from '../components/CurrencyInput.js';
 import LoadingSpinner from '../components/LoadingSpinner.js';
@@ -45,6 +51,11 @@ const Products = () => {
   const [editingProduct, setEditingProduct] = useState(null);
   const [formData, setFormData] = useState(emptyForm);
   const [searchTerm, setSearchTerm] = useState('');
+  const [currentPage, setCurrentPage] = useState(1);
+  const [productsPerPage, setProductsPerPage] = useState(10);
+  const [selectedProductIds, setSelectedProductIds] = useState([]);
+  const [bulkDeleteError, setBulkDeleteError] = useState('');
+  const [deletingSelected, setDeletingSelected] = useState(false);
   const [uploadingImages, setUploadingImages] = useState(false);
   const [spreadsheetBusy, setSpreadsheetBusy] = useState(false);
   const importFileRef = useRef(null);
@@ -56,7 +67,10 @@ const Products = () => {
 
   const fetchProducts = async () => {
     try {
-      setProducts(await getAllProducts());
+      const loadedProducts = await getAllProducts();
+      const availableIds = new Set(loadedProducts.map((product) => product.id));
+      setProducts(loadedProducts);
+      setSelectedProductIds((current) => current.filter((id) => availableIds.has(id)));
     } catch (error) {
       console.error('Lỗi khi tải sản phẩm:', error);
     } finally {
@@ -97,10 +111,33 @@ const Products = () => {
     if (!window.confirm('Bạn có chắc chắn muốn xóa sản phẩm này?')) return;
     try {
       await deleteProduct(productId);
+      setSelectedProductIds((current) => current.filter((id) => id !== productId));
       await fetchProducts();
     } catch (error) {
       console.error('Lỗi khi xóa sản phẩm:', error);
       alert('Xóa sản phẩm thất bại: ' + error.message);
+    }
+  };
+
+  const handleDeleteSelectedProducts = async () => {
+    const selectedIds = products
+      .filter((product) => selectedProductIds.includes(product.id))
+      .map((product) => product.id);
+    if (selectedIds.length === 0) return;
+    if (!window.confirm(`Bạn có chắc chắn muốn xóa ${selectedIds.length} sản phẩm đã chọn? Thao tác này không thể hoàn tác.`)) return;
+
+    setDeletingSelected(true);
+    setBulkDeleteError('');
+    try {
+      await deleteProducts(selectedIds);
+      const deletedIds = new Set(selectedIds);
+      setProducts((current) => current.filter((product) => !deletedIds.has(product.id)));
+      setSelectedProductIds((current) => current.filter((id) => !deletedIds.has(id)));
+    } catch (error) {
+      console.error('Lỗi khi xóa các sản phẩm đã chọn:', error);
+      setBulkDeleteError(`Xóa sản phẩm thất bại: ${error.message || 'Vui lòng thử lại.'}`);
+    } finally {
+      setDeletingSelected(false);
     }
   };
 
@@ -264,6 +301,15 @@ const Products = () => {
     return [product.name, getProductDescriptionText(product.description), product.sku]
       .some((value) => String(value || '').toLocaleLowerCase().includes(search));
   });
+  const totalPages = Math.max(1, Math.ceil(filteredProducts.length / productsPerPage));
+  const displayedPage = Math.min(currentPage, totalPages);
+  const firstVisibleProduct = (displayedPage - 1) * productsPerPage;
+  const paginatedProducts = filteredProducts.slice(
+    firstVisibleProduct,
+    firstVisibleProduct + productsPerPage
+  );
+  const allCurrentPageSelected = paginatedProducts.length > 0 &&
+    paginatedProducts.every((product) => selectedProductIds.includes(product.id));
   const activeProducts = products.filter((product) => product.isActive !== false).length;
 
   return (
@@ -308,10 +354,25 @@ const Products = () => {
                 type="search"
                 placeholder="Tìm sản phẩm..."
                 value={searchTerm}
-                onChange={(event) => setSearchTerm(event.target.value)}
+                onChange={(event) => {
+                  setSearchTerm(event.target.value);
+                  setCurrentPage(1);
+                }}
                 className="product-search"
                 aria-label="Tìm sản phẩm"
               />
+              {selectedProductIds.length > 0 && (
+                <button
+                  type="button"
+                  className="product-bulk-delete"
+                  onClick={handleDeleteSelectedProducts}
+                  disabled={deletingSelected}
+                >
+                  {deletingSelected
+                    ? 'Đang xóa...'
+                    : `Xóa đã chọn (${selectedProductIds.length})`}
+                </button>
+              )}
               <button
                 type="button"
                 onClick={handleDownloadImportTemplate}
@@ -348,6 +409,10 @@ const Products = () => {
             </div>
           </div>
 
+          {bulkDeleteError && (
+            <p className="product-bulk-delete-error" role="alert">{bulkDeleteError}</p>
+          )}
+
           {loading ? (
             <div className="products-loading">
               <LoadingSpinner message="Đang tải sản phẩm..." inline />
@@ -360,10 +425,32 @@ const Products = () => {
               {!searchTerm && <button onClick={handleAddProduct} className="product-add-button">Thêm sản phẩm</button>}
             </div>
           ) : (
-            <div className="products-table-scroll">
+            <>
+              <div className="products-table-scroll">
               <table className="products-table">
                 <thead>
                   <tr>
+                    <th className="product-select-cell">
+                      <input
+                        type="checkbox"
+                        className="product-select-checkbox"
+                        aria-label="Chọn tất cả sản phẩm trên trang này"
+                        checked={allCurrentPageSelected}
+                        disabled={deletingSelected}
+                        onChange={(event) => {
+                          const shouldSelect = event.target.checked;
+                          const currentPageIds = paginatedProducts.map((product) => product.id);
+                          setSelectedProductIds((current) => {
+                            const next = new Set(current);
+                            currentPageIds.forEach((id) => {
+                              if (shouldSelect) next.add(id);
+                              else next.delete(id);
+                            });
+                            return [...next];
+                          });
+                        }}
+                      />
+                    </th>
                     <th>Sản phẩm</th>
                     <th>Danh mục</th>
                     <th>Giá bán</th>
@@ -373,11 +460,25 @@ const Products = () => {
                   </tr>
                 </thead>
                 <tbody>
-                  {filteredProducts.map((product) => {
+                  {paginatedProducts.map((product) => {
                     const category = categories.find((item) => item.id === product.categoryId);
                     const primaryImage = getProductImages(product)[0];
                     return (
                       <tr key={product.id}>
+                        <td className="product-select-cell">
+                          <input
+                            type="checkbox"
+                            className="product-select-checkbox"
+                            aria-label={`Chọn sản phẩm ${product.name}`}
+                            checked={selectedProductIds.includes(product.id)}
+                            disabled={deletingSelected}
+                            onChange={(event) => {
+                              setSelectedProductIds((current) => event.target.checked
+                                ? [...new Set([...current, product.id])]
+                                : current.filter((id) => id !== product.id));
+                            }}
+                          />
+                        </td>
                         <td>
                           <div className="product-cell">
                             {primaryImage ? (
@@ -418,7 +519,14 @@ const Products = () => {
                             <button type="button" onClick={() => handleToggleActive(product)} className="product-action toggle">
                               {product.isActive === false ? 'Mở bán' : 'Ẩn'}
                             </button>
-                            <button type="button" onClick={() => handleDeleteProduct(product.id)} className="product-action delete">Xóa</button>
+                            <button
+                              type="button"
+                              onClick={() => handleDeleteProduct(product.id)}
+                              className="product-action delete"
+                              disabled={deletingSelected}
+                            >
+                              Xóa
+                            </button>
                           </div>
                         </td>
                       </tr>
@@ -426,7 +534,47 @@ const Products = () => {
                   })}
                 </tbody>
               </table>
-            </div>
+              </div>
+              <div className="products-pagination">
+                <div className="products-pagination-info">
+                  <span>
+                    Hiển thị {firstVisibleProduct + 1}–{firstVisibleProduct + paginatedProducts.length} / {filteredProducts.length} sản phẩm
+                  </span>
+                  <label className="products-page-size">
+                    <span>Số sản phẩm mỗi trang</span>
+                    <select
+                      value={productsPerPage}
+                      onChange={(event) => {
+                        setProductsPerPage(Number(event.target.value));
+                        setCurrentPage(1);
+                      }}
+                      aria-label="Số sản phẩm mỗi trang"
+                    >
+                      <option value={10}>10 / trang</option>
+                      <option value={20}>20 / trang</option>
+                      <option value={100}>100 / trang</option>
+                    </select>
+                  </label>
+                </div>
+                <nav className="products-pagination-controls" aria-label="Phân trang sản phẩm">
+                  <button
+                    type="button"
+                    onClick={() => setCurrentPage(displayedPage - 1)}
+                    disabled={displayedPage === 1}
+                  >
+                    Trước
+                  </button>
+                  <span>Trang {displayedPage} / {totalPages}</span>
+                  <button
+                    type="button"
+                    onClick={() => setCurrentPage(displayedPage + 1)}
+                    disabled={displayedPage === totalPages}
+                  >
+                    Sau
+                  </button>
+                </nav>
+              </div>
+            </>
           )}
         </section>
       </div>
