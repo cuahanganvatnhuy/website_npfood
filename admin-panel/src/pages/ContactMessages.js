@@ -157,6 +157,7 @@ const ContactMessages = () => {
     return matchesFilter && matchesSearch;
   });
   const selectedChat = filteredChats.find((chat) => chat.uid === selectedChatUid) || filteredChats[0] || null;
+  const activeCustomerUid = selectedChat?.uid;
   const selectedCustomer = selectedChat
     ? customerProfiles.find((profile) => profile.id === selectedChat.uid || profile.uid === selectedChat.uid) || {
       uid: selectedChat.uid,
@@ -183,7 +184,7 @@ const ContactMessages = () => {
   }, [selectedChat?.uid, selectedChat?.messages.length]);
 
   useEffect(() => {
-    if (!selectedChat) {
+    if (!activeCustomerUid) {
       setCustomerVouchers([]);
       return undefined;
     }
@@ -192,7 +193,7 @@ const ContactMessages = () => {
     setCustomerDetailsLoading(true);
     setCustomerDetailsError('');
     setCustomerVouchers([]);
-    getCustomerChatVouchers(selectedChat.uid)
+    getCustomerChatVouchers(activeCustomerUid)
       .then((vouchers) => {
         if (isMounted) setCustomerVouchers(vouchers);
       })
@@ -207,7 +208,7 @@ const ContactMessages = () => {
     return () => {
       isMounted = false;
     };
-  }, [selectedChat?.uid]);
+  }, [activeCustomerUid]);
 
   useEffect(() => {
     if (customerDetailTab !== 'products' || shopProductsLoaded) return undefined;
