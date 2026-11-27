@@ -1,5 +1,5 @@
 import { db } from './firebase';
-import { ref, push, get, update, remove, set } from 'firebase/database';
+import { ref, push, get, update, remove, set, onValue } from 'firebase/database';
 
 // Introduction Page
 const introRef = ref(db, 'introduction');
@@ -244,6 +244,74 @@ export const deleteContactMessage = async (messageId) => {
     await remove(messageRef);
   } catch (error) {
     console.error('Error deleting contact message:', error);
+    throw error;
+  }
+};
+
+export const subscribeToCustomerChats = (onChats, onError) => (
+  onValue(ref(db, 'customerChats'), (snapshot) => {
+    const chats = [];
+    if (snapshot.exists()) {
+      snapshot.forEach((chatSnapshot) => {
+        const chatData = chatSnapshot.val() || {};
+        const messages = Object.entries(chatData.messages || {})
+          .map(([id, message]) => ({ id, ...message }))
+          .sort((first, second) => new Date(first.createdAt) - new Date(second.createdAt));
+        if (messages.length > 0) {
+          const firstCustomerMessage = messages.find((message) => message.sender === 'customer');
+          chats.push({
+            uid: chatSnapshot.key,
+            name: firstCustomerMessage?.senderName || 'Khách hàng',
+            email: firstCustomerMessage?.email || '',
+            messages
+          });
+        }
+      });
+    }
+    chats.sort((first, second) => {
+      const firstMessage = first.messages[first.messages.length - 1];
+      const secondMessage = second.messages[second.messages.length - 1];
+      return new Date(secondMessage.createdAt) - new Date(firstMessage.createdAt);
+    });
+    onChats(chats);
+  }, onError)
+);
+
+export const sendShopChatMessage = async (customerUid, text, product = null) => {
+  const messageText = String(text || (product ? 'Shop gửi bạn sản phẩm này, cần tư vấn thêm cứ nhắn shop nhé.' : '')).trim();
+  if (!customerUid) throw new Error('Không tìm thấy tài khoản khách hàng.');
+  if (!messageText) throw new Error('Vui lòng nhập nội dung tin nhắn.');
+  if (messageText.length > 2000) throw new Error('Tin nhắn không được vượt quá 2.000 ký tự.');
+
+  const messageRef = push(ref(db, `customerChats/${customerUid}/messages`));
+  const message = {
+    text: messageText,
+    sender: 'shop',
+    senderName: 'NP Food',
+    createdAt: new Date().toISOString()
+  };
+  if (product) {
+    message.product = {
+      id: String(product.id || ''),
+      name: String(product.name || 'Sản phẩm').slice(0, 300),
+      imageUrl: String(product.imageUrl || '').slice(0, 2000),
+      price: Number(product.price) || 0,
+      originalPrice: Number(product.originalPrice ?? product.price) || 0
+    };
+  }
+
+  await set(messageRef, message);
+  return messageRef.key;
+};
+
+export const getCustomerChatVouchers = async (customerUid) => {
+  if (!customerUid) return [];
+  try {
+    const snapshot = await get(ref(db, `customerVouchers/${customerUid}`));
+    if (!snapshot.exists()) return [];
+    return Object.entries(snapshot.val()).map(([id, voucher]) => ({ id, ...voucher }));
+  } catch (error) {
+    console.error('Lỗi khi tải voucher của khách chat:', error);
     throw error;
   }
 };

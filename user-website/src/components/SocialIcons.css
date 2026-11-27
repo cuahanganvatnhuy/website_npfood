@@ -41,6 +41,11 @@
   background: #1877f2;
 }
 
+.chat-icon {
+  border: 0;
+  background: #07834b;
+}
+
 .social-icon:focus-visible {
   outline: 3px solid rgba(201, 154, 23, 0.7);
   outline-offset: 3px;

@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import CustomerAccount from './pages/CustomerAccount';
 import Navigation from './components/Navigation';
+import CustomerChatWidget from './components/CustomerChatWidget';
 import Footer from './components/Footer';
 import SocialIcons from './components/SocialIcons';
 import Home from './pages/Home';
@@ -42,6 +43,7 @@ function App() {
   const [cartItems, setCartItems] = useState(loadCart);
   const [customerUser, setCustomerUser] = useState(null);
   const [authReady, setAuthReady] = useState(false);
+  const [isChatOpen, setIsChatOpen] = useState(false);
 
   useEffect(() => subscribeToCustomerAuth(
     (user) => {
@@ -141,7 +143,12 @@ function App() {
     <Router>
       <ScrollToTop />
       <div className="App">
-        <Navigation cartCount={cartCount} user={customerUser} />
+        <Navigation
+          cartCount={cartCount}
+          user={customerUser}
+          isChatOpen={isChatOpen}
+          onToggleChat={() => setIsChatOpen((isOpen) => !isOpen)}
+        />
         <main className="main-content">
           <Routes>
             <Route path="/" element={<Home addToCart={addToCart} user={customerUser} />} />
@@ -183,7 +190,8 @@ function App() {
           </Routes>
         </main>
         <Footer />
-        <SocialIcons />
+        <SocialIcons onOpenChat={() => setIsChatOpen(true)} />
+        {isChatOpen && <CustomerChatWidget user={customerUser} onClose={() => setIsChatOpen(false)} />}
       </div>
     </Router>
   );

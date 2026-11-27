@@ -405,6 +405,22 @@
   text-decoration: none;
 }
 
+.header-actions > .customer-chat-header-trigger {
+  position: relative;
+  display: flex;
+  min-width: max-content;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 10px 12px;
+  font-size: 15px;
+}
+
+.customer-chat-header-trigger .notification-badge {
+  top: -5px;
+  right: -5px;
+}
+
 .notification-menu-wrap {
   position: relative;
 }

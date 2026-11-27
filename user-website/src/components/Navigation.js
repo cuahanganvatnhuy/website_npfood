@@ -4,7 +4,7 @@ import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { getActiveMarketplaceChannels } from '../services/dataService';
 import '../css/Navigation.css';
 
-const Navigation = ({ cartCount = 0, user = null }) => {
+const Navigation = ({ cartCount = 0, user = null, isChatOpen = false, onToggleChat }) => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [isHeaderHidden, setIsHeaderHidden] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
@@ -141,6 +141,7 @@ const Navigation = ({ cartCount = 0, user = null }) => {
     : location.pathname === path || location.pathname.startsWith(`${path}/`);
 
   return (
+    <>
     <nav
       className={`store-navigation ${isHeaderHidden ? 'is-hidden' : ''}`}
       aria-hidden={isHeaderHidden}
@@ -214,6 +215,22 @@ const Navigation = ({ cartCount = 0, user = null }) => {
         </ul>
 
         <div className="store-nav-actions">
+          <button
+            type="button"
+            className="store-nav-chat"
+            onClick={() => {
+              setIsMenuOpen(false);
+              onToggleChat?.();
+            }}
+            aria-expanded={isChatOpen}
+            aria-label="Nhắn tin với shop"
+          >
+            <svg aria-hidden="true" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M20 11.5a7.5 7.5 0 0 1-7.5 7.5H6l-3 2v-6a7.5 7.5 0 1 1 17-3.5Z" />
+              <path d="M8 11h8M8 14h5" />
+            </svg>
+            <span>Nhắn shop</span>
+          </button>
           <Link
             to="/vouchers"
             className={`store-nav-voucher ${location.pathname === '/vouchers' ? 'active' : ''}`}
@@ -313,6 +330,7 @@ const Navigation = ({ cartCount = 0, user = null }) => {
         document.body
       )}
     </nav>
+    </>
   );
 };
 

@@ -7,6 +7,7 @@ import {
   saveAdminNotifications,
   subscribeToAdminNotifications
 } from '../services/adminNotificationService.js';
+import { subscribeToCustomerChats } from '../services/pageService.js';
 import '../css/SidebarLayout.css';
 
 const formatNotificationTime = (value) => {
@@ -20,6 +21,17 @@ const formatNotificationTime = (value) => {
   });
 };
 
+const countCustomerMessagesAwaitingReply = (chats) => chats.reduce((total, chat) => {
+  const lastShopMessageIndex = chat.messages.reduce(
+    (lastIndex, message, index) => message.sender === 'shop' ? index : lastIndex,
+    -1
+  );
+  return total + chat.messages
+    .slice(lastShopMessageIndex + 1)
+    .filter((message) => message.sender === 'customer')
+    .length;
+}, 0);
+
 const SidebarLayout = () => {
   const [isSidebarOpen, setIsSidebarOpen] = useState(
     () => typeof window === 'undefined' || window.innerWidth > 768
@@ -30,6 +42,8 @@ const SidebarLayout = () => {
   const [notificationSettings, setNotificationSettings] = useState(loadAdminNotificationSettings);
   const [isNotificationOpen, setIsNotificationOpen] = useState(false);
   const [notificationError, setNotificationError] = useState('');
+  const [customerChatMessageCount, setCustomerChatMessageCount] = useState(0);
+  const [customerChatCountError, setCustomerChatCountError] = useState('');
 
   const addNotification = useCallback((notification) => {
     setNotifications((current) => {
@@ -47,6 +61,17 @@ const SidebarLayout = () => {
     addNotification,
     () => setNotificationError('Một số thông báo chưa thể đồng bộ.')
   ), [notificationSettings, addNotification]);
+
+  useEffect(() => subscribeToCustomerChats(
+    (chats) => {
+      setCustomerChatMessageCount(countCustomerMessagesAwaitingReply(chats));
+      setCustomerChatCountError('');
+    },
+    (error) => {
+      console.error('Không thể tải số tin nhắn khách hàng:', error);
+      setCustomerChatCountError('Không thể tải số tin nhắn khách hàng.');
+    }
+  ), []);
 
   useEffect(() => {
     if (!isNotificationOpen) return undefined;
@@ -74,7 +99,7 @@ const SidebarLayout = () => {
   ];
   const informationItems = [
     { title: 'Liên hệ cửa hàng', path: '/contact', icon: '📞' },
-    { title: 'Tin nhắn đến', path: '/contact-messages', icon: '✉️' },
+    { title: 'Tin nhắn khách hàng', path: '/contact-messages', icon: '💬' },
     { title: 'Giới thiệu cửa hàng', path: '/introduction', icon: 'ℹ️' },
     { title: 'Tin tức', path: '/news', icon: '📰' },
   ];
@@ -217,6 +242,20 @@ const SidebarLayout = () => {
           </div>
           <div className="header-right">
             <div className="header-actions">
+              <Link
+                to="/contact-messages"
+                className="action-btn customer-chat-header-trigger"
+                title={customerChatCountError || 'Tin nhắn khách hàng'}
+                aria-label={customerChatCountError || `Tin nhắn khách hàng, ${customerChatMessageCount} tin đang chờ trả lời`}
+              >
+                <span aria-hidden="true">💬</span>
+                <span className="customer-chat-header-label">Tin nhắn khách hàng</span>
+                {customerChatMessageCount > 0 && (
+                  <span className="notification-badge">
+                    {customerChatMessageCount > 99 ? '99+' : customerChatMessageCount}
+                  </span>
+                )}
+              </Link>
               <div className="notification-menu-wrap">
                 <button
                   type="button"

@@ -34,6 +34,18 @@
       ".read": "auth != null && auth.token.email === 'admin@gmail.com'",
       ".write": "auth != null && auth.token.email === 'admin@gmail.com'"
     },
+    "customerChats": {
+      ".read": "auth != null && auth.token.email === 'admin@gmail.com'",
+      "$uid": {
+        ".read": "auth != null && (auth.token.email === 'admin@gmail.com' || auth.uid === $uid)",
+        "messages": {
+          "$messageId": {
+            ".write": "auth != null && !data.exists() && newData.exists() && ((auth.uid === $uid && newData.child('sender').val() === 'customer' && (!newData.child('email').exists() || newData.child('email').val() === auth.token.email || newData.child('email').val() === '')) || (auth.token.email === 'admin@gmail.com' && newData.child('sender').val() === 'shop'))",
+            ".validate": "newData.hasChildren(['text', 'sender', 'senderName', 'createdAt']) && newData.child('text').isString() && newData.child('text').val().length > 0 && newData.child('text').val().length <= 2000 && newData.child('sender').isString() && (newData.child('sender').val() === 'customer' || newData.child('sender').val() === 'shop') && newData.child('senderName').isString() && newData.child('senderName').val().length <= 120 && newData.child('createdAt').isString() && (!newData.child('email').exists() || (newData.child('email').isString() && newData.child('email').val().length <= 254))"
+          }
+        }
+      }
+    },
     "orders": {
       ".read": "auth != null && (auth.token.email === 'admin@gmail.com' || (query.orderByChild === 'customerUid' && query.equalTo === auth.uid))",
       ".indexOn": ["customerUid"],
