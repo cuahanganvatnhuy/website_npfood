@@ -24,13 +24,19 @@ const notificationOptions = [
     description: 'Báo khi khách gửi tin nhắn qua trang Liên hệ.'
   },
   {
+    key: 'chatMessages',
+    icon: '💬',
+    title: 'Tin nhắn chat',
+    description: 'Báo khi khách gửi tin nhắn trong cửa sổ chat.'
+  },
+  {
     key: 'lowStock',
     icon: '📦',
     title: 'Cảnh báo tồn kho',
     description: 'Báo khi tồn kho của sản phẩm giảm xuống còn 5 hoặc ít hơn.'
   }
 ];
-const emailNotificationOptions = notificationOptions.filter(({ key }) => key === 'orders');
+const emailNotificationOptions = notificationOptions.filter(({ key }) => ['orders', 'chatMessages'].includes(key));
 
 const getEmailSettingsErrorMessage = (error, fallbackMessage) => {
   const errorDetails = `${error?.code || ''} ${error?.message || ''}`.toUpperCase();
@@ -168,7 +174,7 @@ const Settings = () => {
           <span className="admin-settings-note-icon" aria-hidden="true">✉</span>
           <div>
             <strong>Gửi email không cần nâng cấp Firebase</strong>
-            <p>Apps Script gửi email sau khi khách đặt hàng thành công, bằng tài khoản Google triển khai script. Không cần Gmail App Password hoặc Firebase Blaze. Các sự kiện khác vẫn chỉ hiện trong chuông quản trị.</p>
+            <p>Apps Script gửi email khi khách đặt hàng hoặc gửi tin nhắn chat, bằng tài khoản Google triển khai script. Không cần Gmail App Password hoặc Firebase Blaze.</p>
           </div>
           <span className="admin-settings-server-badge">APPS SCRIPT</span>
         </div>
@@ -177,7 +183,7 @@ const Settings = () => {
           <div className="admin-settings-card-heading">
             <div>
               <h3>Cài đặt gửi Gmail</h3>
-              <p>Bật email đơn hàng và chọn địa chỉ nhận.</p>
+              <p>Bật email đơn hàng, tin nhắn chat và chọn địa chỉ nhận.</p>
             </div>
             <span className="admin-settings-card-count">Google Apps Script</span>
           </div>
@@ -218,7 +224,7 @@ const Settings = () => {
               />
               <span>
                 <strong>Bật gửi thông báo qua Gmail</strong>
-                <small>Email sẽ được gửi khi khách đặt đơn hàng thành công.</small>
+                <small>Email sẽ được gửi theo các sự kiện được chọn bên dưới.</small>
               </span>
             </label>
           </div>
@@ -251,7 +257,7 @@ const Settings = () => {
 
           <div className="admin-settings-footer">
             <p className="admin-settings-storage-note">
-              {emailLoading ? 'Đang tải cài đặt…' : 'Cài đặt Gmail lưu trong Firebase; Apps Script xử lý email đơn hàng.'}
+              {emailLoading ? 'Đang tải cài đặt…' : 'Cài đặt Gmail lưu trong Firebase; Apps Script xử lý email đơn hàng và tin nhắn chat.'}
             </p>
             {emailError && <p className="admin-settings-error" role="alert">{emailError}</p>}
             {emailStatus && <p className="admin-settings-success" role="status">{emailStatus}</p>}

@@ -1,18 +1,58 @@
-jest.mock('./firebase', () => ({ db: {} }));
+jest.mock('./firebase', () => ({ auth: { currentUser: null }, db: {} }));
 jest.mock('firebase/database', () => ({
+  get: jest.fn(),
   onValue: jest.fn(),
   push: jest.fn(),
   ref: jest.fn((database, path) => ({ path })),
   set: jest.fn()
 }));
 
-import { onValue, push, ref, set } from 'firebase/database';
+import { get, onValue, push, ref, set } from 'firebase/database';
+import { auth } from './firebase';
 import { sendCustomerChatMessage, subscribeToCustomerChat } from './customerChatService';
 
 beforeEach(() => {
   jest.clearAllMocks();
   push.mockReturnValue({ key: 'message-1' });
   set.mockResolvedValue();
+});
+
+test('requests an Apps Script email with the sent chat content', async () => {
+  const originalFetch = global.fetch;
+  auth.currentUser = {
+    uid: 'customer-1',
+    getIdToken: jest.fn().mockResolvedValue('firebase-id-token')
+  };
+  get.mockResolvedValue({
+    val: () => 'https://script.google.com/macros/s/deployment-id/exec'
+  });
+  global.fetch = jest.fn().mockResolvedValue({ ok: true });
+
+  try {
+    await sendCustomerChatMessage('customer-1', {
+      text: 'shop ơi có nghe không shop ơi',
+      senderName: 'Hoàng',
+      email: 'hoang@example.com'
+    });
+
+    expect(global.fetch).toHaveBeenCalledWith(
+      'https://script.google.com/macros/s/deployment-id/exec',
+      expect.objectContaining({ method: 'POST', mode: 'no-cors' })
+    );
+    const body = global.fetch.mock.calls[0][1].body;
+    expect(JSON.parse(body.get('payload'))).toMatchObject({
+      action: 'chat',
+      idToken: 'firebase-id-token',
+      customerUid: 'customer-1',
+      messageId: 'message-1',
+      senderName: 'Hoàng',
+      email: 'hoang@example.com',
+      text: 'shop ơi có nghe không shop ơi'
+    });
+  } finally {
+    auth.currentUser = null;
+    global.fetch = originalFetch;
+  }
 });
 
 test('sends a trimmed customer message to that customer conversation', async () => {

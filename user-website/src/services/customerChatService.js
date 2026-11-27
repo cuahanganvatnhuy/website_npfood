@@ -1,5 +1,45 @@
-import { onValue, push, ref, set } from 'firebase/database';
-import { db } from './firebase';
+import { get, onValue, push, ref, set } from 'firebase/database';
+import { auth, db } from './firebase';
+
+const requestAppsScriptChatEmail = async (customerUid, messageId, message) => {
+  const user = auth?.currentUser;
+  if (!user || user.uid !== customerUid) return;
+
+  const webhookSnapshot = await get(ref(db, 'publicConfig/emailNotificationWebhookUrl'));
+  const webhookUrl = webhookSnapshot.val();
+  if (!webhookUrl) return;
+
+  let endpoint;
+  try {
+    endpoint = new URL(webhookUrl);
+  } catch {
+    return;
+  }
+  if (
+    endpoint.protocol !== 'https:' ||
+    endpoint.hostname !== 'script.google.com' ||
+    !/^\/macros\/s\/[^/]+\/exec\/?$/.test(endpoint.pathname)
+  ) return;
+
+  const idToken = await user.getIdToken();
+  await fetch(endpoint.toString(), {
+    method: 'POST',
+    mode: 'no-cors',
+    headers: { 'Content-Type': 'application/x-www-form-urlencoded;charset=UTF-8' },
+    body: new URLSearchParams({
+      payload: JSON.stringify({
+        action: 'chat',
+        idToken,
+        customerUid,
+        messageId,
+        senderName: message.senderName,
+        email: message.email,
+        text: message.text,
+        productName: message.product?.name || ''
+      })
+    })
+  });
+};
 
 export const subscribeToCustomerChat = (customerUid, onMessages, onError) => {
   if (!customerUid) throw new Error('Vui lòng đăng nhập để xem tin nhắn.');
@@ -45,5 +85,10 @@ export const sendCustomerChatMessage = async (customerUid, { text, senderName, e
   }
 
   await set(messageRef, message);
+  try {
+    await requestAppsScriptChatEmail(customerUid, messageRef.key, message);
+  } catch (error) {
+    console.error('Không thể yêu cầu gửi email thông báo chat:', error);
+  }
   return messageRef.key;
 };

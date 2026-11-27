@@ -146,6 +146,43 @@ exports.notifyContactMessage = onValueCreated({
   });
 });
 
+exports.notifyCustomerChatMessage = onValueCreated({
+  ref: '/customerChats/{customerUid}/messages/{messageId}',
+  region: 'us-central1',
+  retry: true,
+  secrets: [gmailUser, gmailAppPassword]
+}, async (event) => {
+  const message = event.data.val() || {};
+  if (message.sender !== 'customer') return;
+
+  const senderName = message.senderName || message.email || 'Khách hàng';
+  const messageText = String(message.text || '').trim();
+  const customerEmail = String(message.email || '').trim();
+  const product = message.product || null;
+  const subject = `NP FOOD: Bạn có tin nhắn chat mới từ ${safeSubjectValue(senderName)}`;
+  const text = [
+    `Bạn có tin nhắn mới từ ${senderName}.`,
+    customerEmail ? `Email: ${customerEmail}` : '',
+    messageText ? `Nội dung: ${messageText}` : '',
+    product?.name ? `Sản phẩm: ${product.name}` : ''
+  ].filter(Boolean).join('\n');
+  const html = [
+    `<p>Bạn có tin nhắn chat mới từ <strong>${escapeHtml(senderName)}</strong>.</p>`,
+    customerEmail ? `<p>Email: ${escapeHtml(customerEmail)}</p>` : '',
+    messageText ? `<p><strong>Nội dung:</strong> ${escapeHtml(messageText)}</p>` : '',
+    product?.name ? `<p><strong>Sản phẩm:</strong> ${escapeHtml(product.name)}</p>` : '',
+    '<p>Vui lòng mở trang quản trị NP FOOD để xem và trả lời cuộc trò chuyện.</p>'
+  ].join('');
+
+  await sendNotificationEmail({
+    eventId: event.id,
+    eventType: 'chatMessages',
+    subject,
+    text,
+    html
+  });
+});
+
 exports.notifyLowStock = onValueWritten({
   ref: '/products/{productId}',
   region: 'us-central1',

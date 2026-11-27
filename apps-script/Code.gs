@@ -14,6 +14,8 @@ function doPost(event) {
       result = sendTestEmail_(payload);
     } else if (payload.action === 'order') {
       result = sendOrderEmail_(payload);
+    } else if (payload.action === 'chat') {
+      result = sendChatEmail_(payload);
     } else {
       throw new Error('Unsupported action.');
     }
@@ -39,7 +41,8 @@ function configureEmail_(payload) {
   const settings = {
     enabled: enabled,
     recipientEmail: recipientEmail,
-    orders: input.orders !== false
+    orders: input.orders !== false,
+    chatMessages: input.chatMessages !== false
   };
   PropertiesService.getScriptProperties()
     .setProperty(EMAIL_SETTINGS_PROPERTY, JSON.stringify(settings));
@@ -92,13 +95,77 @@ function sendOrderEmail_(payload) {
   }
 }
 
+function sendChatEmail_(payload) {
+  const settings = loadEmailSettings_();
+  if (!settings.enabled || !settings.chatMessages) return 'Chat email notifications are disabled.';
+  if (!settings.recipientEmail) throw new Error('The recipient email has not been configured.');
+
+  const customerUid = String(payload.customerUid || '');
+  const messageId = String(payload.messageId || '');
+  if (!/^[A-Za-z0-9_-]{1,128}$/.test(customerUid) || !/^[A-Za-z0-9_-]{1,128}$/.test(messageId)) {
+    throw new Error('Invalid chat message ID.');
+  }
+
+  const user = verifyFirebaseUser_(payload.idToken);
+  if (customerUid !== user.localId) throw new Error('The chat does not belong to the authenticated customer.');
+
+  const cache = CacheService.getScriptCache();
+  const cacheKey = 'npfood-chat-email-' + customerUid + '-' + messageId;
+  if (cache.get(cacheKey)) return 'Chat email already sent.';
+
+  const lock = LockService.getScriptLock();
+  if (!lock.tryLock(10000)) throw new Error('Could not acquire the email lock.');
+  try {
+    if (cache.get(cacheKey)) return 'Chat email already sent.';
+
+    let senderName = String(payload.senderName || payload.email || '').trim();
+    let text = String(payload.text || '').trim();
+    let email = String(payload.email || '').trim();
+    let productName = String(payload.productName || '').trim();
+
+    if (!text || !senderName) {
+      const message = loadCustomerChatMessage_(customerUid, messageId, payload.idToken);
+      if (!message || message.sender !== 'customer') return 'Only customer chat messages are notified.';
+      senderName = String(message.senderName || message.email || 'Khách hàng');
+      text = String(message.text || '');
+      email = String(message.email || '');
+      productName = message.product && message.product.name
+        ? String(message.product.name)
+        : '';
+    }
+
+    senderName = senderName || 'Khách hàng';
+    text = text || 'Khách hàng đã gửi tin nhắn chat.';
+    const subject = 'NP Food - Tin nhắn chat mới từ ' + senderName;
+    const body = [
+      'Bạn có tin nhắn chat mới từ ' + senderName + '.',
+      email ? 'Email: ' + email : '',
+      text ? 'Nội dung: ' + text : '',
+      productName ? 'Sản phẩm: ' + productName : '',
+      '',
+      'Vui lòng mở trang quản trị NP FOOD để xem và trả lời cuộc trò chuyện.'
+    ].filter(function(line) { return line !== ''; }).join('\n');
+
+    MailApp.sendEmail(settings.recipientEmail, subject, body);
+    cache.put(cacheKey, 'sent', 21600);
+    return 'Chat email sent.';
+  } finally {
+    lock.releaseLock();
+  }
+}
+
 function loadEmailSettings_() {
   const value = PropertiesService.getScriptProperties().getProperty(EMAIL_SETTINGS_PROPERTY);
-  return value ? JSON.parse(value) : {
+  if (!value) return {
     enabled: false,
     recipientEmail: '',
-    orders: true
+    orders: true,
+    chatMessages: true
   };
+  const settings = JSON.parse(value);
+  settings.orders = settings.orders !== false;
+  settings.chatMessages = settings.chatMessages !== false;
+  return settings;
 }
 
 function verifyFirebaseUser_(idToken) {
@@ -126,6 +193,14 @@ function loadCustomerOrder_(orderId, idToken) {
     '.json?auth=' + encodeURIComponent(idToken);
   const response = UrlFetchApp.fetch(url, { muteHttpExceptions: true });
   if (response.getResponseCode() !== 200) throw new Error('Could not read the order from Firebase.');
+  return JSON.parse(response.getContentText());
+}
+
+function loadCustomerChatMessage_(customerUid, messageId, idToken) {
+  const url = FIREBASE_DATABASE_URL + '/customerChats/' + encodeURIComponent(customerUid) +
+    '/messages/' + encodeURIComponent(messageId) + '.json?auth=' + encodeURIComponent(idToken);
+  const response = UrlFetchApp.fetch(url, { muteHttpExceptions: true });
+  if (response.getResponseCode() !== 200) throw new Error('Could not read the chat message from Firebase.');
   return JSON.parse(response.getContentText());
 }
 

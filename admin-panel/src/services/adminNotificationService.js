@@ -10,6 +10,7 @@ const EMAIL_WEBHOOK_PATH = 'publicConfig/emailNotificationWebhookUrl';
 export const defaultAdminNotificationSettings = {
   orders: true,
   contactMessages: true,
+  chatMessages: true,
   lowStock: true
 };
 
@@ -17,7 +18,8 @@ export const defaultAdminEmailNotificationSettings = {
   enabled: false,
   recipientEmail: '',
   appsScriptUrl: '',
-  orders: true
+  orders: true,
+  chatMessages: true
 };
 
 export const loadAdminEmailNotificationSettings = async () => {
@@ -27,7 +29,8 @@ export const loadAdminEmailNotificationSettings = async () => {
     enabled: stored.enabled === true,
     recipientEmail: typeof stored.recipientEmail === 'string' ? stored.recipientEmail : '',
     appsScriptUrl: typeof stored.appsScriptUrl === 'string' ? stored.appsScriptUrl : '',
-    orders: stored.orders !== false
+    orders: stored.orders !== false,
+    chatMessages: stored.chatMessages !== false
   };
 };
 
@@ -68,6 +71,7 @@ export const saveAdminEmailNotificationSettings = async (settings) => {
     enabled: Boolean(settings.enabled),
     recipientEmail,
     orders: Boolean(settings.orders),
+    chatMessages: Boolean(settings.chatMessages),
     appsScriptUrl,
     updatedAt: new Date().toISOString()
   };
@@ -87,7 +91,8 @@ export const saveAdminEmailNotificationSettings = async (settings) => {
         settings: {
           enabled: savedSettings.enabled,
           recipientEmail,
-          orders: savedSettings.orders
+          orders: savedSettings.orders,
+          chatMessages: savedSettings.chatMessages
         }
       });
     } catch (error) {
@@ -113,6 +118,7 @@ export const loadAdminNotificationSettings = () => {
     return {
       orders: stored.orders !== false,
       contactMessages: stored.contactMessages !== false,
+      chatMessages: stored.chatMessages !== false,
       lowStock: stored.lowStock !== false
     };
   } catch (error) {
@@ -236,6 +242,51 @@ export const subscribeToAdminNotifications = (settings, onNotification, onError)
       read: false
     };
   }).catch(reportError);
+
+  if (settings.chatMessages) {
+    const chatsRef = ref(db, 'customerChats');
+    const seenChatMessageIds = new Set();
+    let initialChatSnapshotLoaded = false;
+    const unsubscribe = onValue(chatsRef, (snapshot) => {
+      const latestCustomerMessages = [];
+      snapshot.forEach((chatSnapshot) => {
+        const chatData = chatSnapshot.val() || {};
+        const messages = chatData.messages && typeof chatData.messages === 'object'
+          ? Object.entries(chatData.messages)
+          : [];
+        const customerMessages = messages
+          .map(([id, message]) => ({ id, ...message }))
+          .filter((message) => message.sender === 'customer')
+          .sort((first, second) => new Date(second.createdAt) - new Date(first.createdAt));
+        if (customerMessages[0]) {
+          latestCustomerMessages.push({
+            customerUid: chatSnapshot.key,
+            message: customerMessages[0]
+          });
+        }
+      });
+      latestCustomerMessages.forEach(({ customerUid, message }) => {
+        const messageId = `${customerUid}:${message.id}`;
+        if (!initialChatSnapshotLoaded) {
+          seenChatMessageIds.add(messageId);
+          return;
+        }
+        if (seenChatMessageIds.has(messageId)) return;
+        seenChatMessageIds.add(messageId);
+        onNotification({
+          id: `chat:${messageId}`,
+          type: 'chat',
+          title: 'Bạn có tin nhắn chat mới',
+          message: `${message.senderName || message.email || 'Khách hàng'}: ${message.text || 'Đã gửi một tin nhắn.'}`,
+          createdAt: message.createdAt || new Date().toISOString(),
+          link: '/contact-messages',
+          read: false
+        });
+      });
+      initialChatSnapshotLoaded = true;
+    }, reportError);
+    addUnsubscriber(unsubscribe);
+  }
 
   if (settings.lowStock) {
     const productsRef = ref(db, 'products');
